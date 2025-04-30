@@ -2,15 +2,11 @@ import asyncio
 import sys
 import os
 
-print("DEBUG: Imports successful")
 from mcp import ClientSession, StdioServerParameters, types
 from mcp.client.stdio import stdio_client
 
-print("DEBUG: MCP imports successful")
-
 
 async def main():
-    print("DEBUG: Starting main()")
     print("Starting MCP client application...")
 
     # Set up server parameters for your server.py
@@ -19,37 +15,26 @@ async def main():
         args=["server.py"],
         env=None,
     )
-    print(f"DEBUG: Server params created: {server_params}")
 
     try:
         async with stdio_client(server_params) as (read, write):
-            print("DEBUG: stdio_client context entered")
             async with ClientSession(read, write) as session:
-                print("DEBUG: ClientSession context entered")
-                # Initialize the connection
-                print("DEBUG: Attempting session.initialize()")
                 await session.initialize()
-                print("DEBUG: session.initialize() successful")
 
                 # List available tools using session
                 print("\n=== Available Tools ===")
-                print("DEBUG: Attempting session.list_tools()")
                 tools_result = await session.list_tools()
-                print(f"DEBUG: Got tools result object: {tools_result}")
 
                 if tools_result and tools_result.tools:
                     for tool in tools_result.tools:
-                        print(f"- {tool.name}: {tool.description}")
+                        desc_lines = tool.description.strip().split("\n")
+                        print(f"- {tool.name}: {desc_lines[0].strip()}...")
                 else:
-                    print("No tools found or result object is empty.")
+                    print("No tools found.")
 
                 # List available resource patterns using session
                 print("\n=== Available Resources ===")
-                print("DEBUG: Attempting session.list_resources()")
-
                 resources_result = await session.list_resources()
-
-                print(f"DEBUG: Got resources result: {resources_result}")
 
                 resources_list = []
                 if (
@@ -64,28 +49,66 @@ async def main():
                     for resource_info in resources_list:
                         print(f"- {resource_info}")
                 else:
-                    print("No resources found or result object is empty.")
+                    print("No static resources found.")
 
                 # Call the add tool using session
                 print("\n=== Running 'add' Tool ===")
-                print("DEBUG: Attempting session.call_tool('add')")
                 add_result = await session.call_tool("add", {"a": 5, "b": 7})
-                print(f"DEBUG: Got add_result: {add_result}")
-                print(f"Result of 5 + 7 = {add_result}")
+                add_output = (
+                    add_result.content[0].text
+                    if add_result
+                    and add_result.content
+                    and hasattr(add_result.content[0], "text")
+                    else str(add_result)
+                )
+                print(f"Result of 5 + 7 = {add_output}")
 
                 # Call get_weather using session
                 print("\n=== Running 'get_weather' Tool ===")
-                print("DEBUG: Attempting session.call_tool('get_weather')")
                 weather = await session.call_tool("get_weather", {"city": "London"})
-                print(f"DEBUG: Got weather result: {weather}")
-                print(f"Weather in London: {weather}")
+                weather_output = (
+                    weather.content[0].text
+                    if weather
+                    and weather.content
+                    and hasattr(weather.content[0], "text")
+                    else str(weather)
+                )
+                print(f"Weather in London: {weather_output}")
 
-                # Resolve greeting resource using session
-                print("\n=== Resolving 'greeting://Alice' Resource ===")
-                print("DEBUG: Attempting session.read_resource('greeting://Alice')")
-                content, mime_type = await session.read_resource("greeting://Alice")
-                print(f"DEBUG: Got greeting content: {content}, mime: {mime_type}")
-                print(f"Greeting: {content} (MIME type: {mime_type})")
+                # Read greeting resource using session
+                print("\n=== Reading 'greeting://Alice' Resource ===")
+
+                # Unpack into more descriptive names
+                resource_meta, resource_data = await session.read_resource(
+                    "greeting://Alice"
+                )
+
+                # print(f"DEBUG: Got resource meta: {resource_meta}, data: {resource_data}") # Can uncomment for debug
+
+                # Extract text and mime type from resource_data tuple
+                greeting_text = "Could not extract greeting text"
+                actual_mime_type = "N/A"
+
+                # Check if resource_data is a tuple, long enough, and contains the expected list
+                if (
+                    isinstance(resource_data, tuple)
+                    and len(resource_data) > 1
+                    and isinstance(resource_data[1], list)
+                    and resource_data[1]
+                ):  # Check if the list is not empty
+
+                    first_content_item = resource_data[1][
+                        0
+                    ]  # Get the first item from the list at index 1
+
+                    if hasattr(first_content_item, "text"):
+                        greeting_text = first_content_item.text
+                    if hasattr(first_content_item, "mimeType"):
+                        actual_mime_type = first_content_item.mimeType
+
+                print(f"Greeting: {greeting_text} (MIME type: {actual_mime_type})")
+
+            print("\nClient finished successfully.")
 
     except Exception as e:
         print(f"ERROR in async block: {e}")
@@ -95,10 +118,8 @@ async def main():
 
 
 if __name__ == "__main__":
-    print("DEBUG: Script entry point (__main__)")
     try:
         asyncio.run(main())
-        print("DEBUG: asyncio.run(main()) completed.")
     except Exception as e:
         print(f"ERROR during asyncio.run: {e}")
         import traceback
