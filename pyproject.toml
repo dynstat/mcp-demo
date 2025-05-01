@@ -7,4 +7,6 @@ requires-python = ">=3.12"
 dependencies = [
     "mcp[cli]>=1.6.0",
     "worldnewsapi>=2.2.0",
+    "cython",
+    "setuptools>=80.1.0",
 ]
