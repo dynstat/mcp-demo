@@ -3,6 +3,10 @@
 A simple demonstration project for the Model Control Protocol (MCP) server implementation.
 MCP client implementation will be provided in the future.
 
+<a href="https://glama.ai/mcp/servers/@dynstat/mcp-demo">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@dynstat/mcp-demo/badge" alt="Server Demo MCP server" />
+</a>
+
 ## Overview
 
 This project demonstrates a simple MCP server built with FastMCP that provides several tools and resources for AI assistants to use:
